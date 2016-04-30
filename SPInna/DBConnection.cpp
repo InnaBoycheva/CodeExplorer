@@ -115,7 +115,7 @@ bool DBConnection::insert_rows(string table, table_row columns, vector<table_row
 int DBConnection::get_entry_id(string table, string column, string search_for) {
 	string query = "SELECT * FROM " + table + " WHERE " + column + "=?";
 	pstmt = con->prepareStatement(query.c_str());
-	pstmt->setString(1,search_for);
+	pstmt->setString(1,search_for.c_str());
 	res.reset(pstmt->executeQuery());
 	if (res->next()) {
 		return res->getInt("id");

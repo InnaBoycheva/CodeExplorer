@@ -15,6 +15,7 @@ public:
 //private:
 
 	struct token {
+		token(){}
 		token(std::string s, int i) {
 			str = s;
 			line = i;

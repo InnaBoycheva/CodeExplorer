@@ -21,7 +21,7 @@ bool Parser::find_balanced(vector<token>::reverse_iterator& it, string start_wit
 	int numChars = 1;
 	string next;
 	do {
-		next = *++it;
+		next = (++it)->str;
 		if (next == start_with) ++numChars;
 		if (next == end_with) --numChars;
 	} while (numChars != 0 && it != stack.rend());
@@ -100,7 +100,7 @@ void Parser::scan_line(string line, Node* node) {
 			case '\v':
 			case '\f':
 				if (!content.empty()) {
-					stack.push_back(content);
+					stack.push_back(token(content, current_line));
 				}
 				content = "";
 				break;
@@ -126,17 +126,17 @@ void Parser::scan_line(string line, Node* node) {
 		}
 	}
 	if (!content.empty()) {
-		stack.push_back(content);
+		stack.push_back(token(content, current_line));
 	}
 }
 
 void Parser::add_class(Node* node) {
 	auto rit = loc;
-	while (rit != stack.rend() && *rit != "}" && *rit != ";") {
+	while (rit != stack.rend() && rit->str != "}" && rit->str != ";") {
 		rit++;
 	}
-	if (*--rit == "class" || *rit == "struct") {
-		string class_name = *(rit - 1);
+	if ((--rit)->str == "class" || rit->str == "struct") {
+		string class_name = (rit - 1)->str;
 		// save class/structure as it is defined in this file
 		node->defined_classes.push_back(class_name);
 	}
@@ -185,16 +185,16 @@ void Parser::parse(Node* node) {
 		return;
 	}
 
-	std::vector<string> popped;
+	std::vector<token> popped;
 
 	// Try to keep number of parens balanced
 	int numBrace = 1;
-	string next;
+	vector<token>::reverse_iterator next;
 	do {
-		next = (++loc)->str;
-		if (next == ")") ++numBrace;
-		if (next == "(") --numBrace;
-		popped.push_back(next);
+		next = ++loc;
+		if (next->str == ")") ++numBrace;
+		if (next->str == "(") --numBrace;
+		popped.push_back(*next);
 	} while (numBrace != 0);
 
 	// pushed one extra, pop to balance
@@ -207,15 +207,15 @@ void Parser::parse(Node* node) {
 	}
 
 	// Disregard control structures
-	next = loc->str;
-	if ( next != "if" && next != "for" &&
-		 next != "else" && next != "switch" &&
-		 next != "while") {
+	next = loc;
+	if (next->str != "if" && next->str != "for" &&
+		next->str != "else" && next->str != "switch" &&
+		next->str != "while") {
 
 		FuncStruct func_struct;
 
 		// Function name
-		const char* c = next.c_str();
+		const char* c = next->str.c_str();
 		string function_name = find_function_name(func_struct, c);
 		
 		// black voodoo magic to decide if it's a class or namespace
@@ -238,7 +238,7 @@ void Parser::parse(Node* node) {
 		popped.clear();
 
 		loc++;
-		while (loc != stack.rend() && *loc != "}" && *loc != ";") {
+		while (loc != stack.rend() && loc->str != "}" && loc->str != ";") {
 			popped.push_back(*loc);
 			loc++;
 		}
@@ -247,7 +247,7 @@ void Parser::parse(Node* node) {
 		if (!popped.empty()) {
 			auto rit = popped.rbegin();
 			while (rit != popped.rend()) {
-				ret_type += *rit;
+				ret_type += rit->str;
 				rit++;
 			}
 			func_struct.set_return_type(ret_type);
@@ -259,19 +259,19 @@ void Parser::parse(Node* node) {
 	} 
 }
 
-std::vector<Parser::string_or_vec> Parser::combine_template_args(std::vector<string> split) {
-	vector<string_or_vec> temp;
+std::vector<Parser::token_or_vec> Parser::combine_template_args(std::vector<token> split) {
+	vector<token_or_vec> temp;
 	
 	auto rit = split.begin();
 	while (rit != split.end()) {
-		string_or_vec str;
-		str.str = *rit;
-		str.is_vec = false;
-		temp.push_back(str);
-		if (*rit++ == "<") {
-			string_or_vec vec;
+		token_or_vec tok;
+		tok.tok = *rit;
+		tok.is_vec = false;
+		temp.push_back(tok);
+		if ((rit++)->str == "<") {
+			token_or_vec vec;
 			vec.is_vec = true;
-			while (temp.back().is_vec || temp.back().str != ">") {
+			while (temp.back().is_vec || temp.back().tok.str != ">") {
 				vec.vec.push_back(temp.back());
 				temp.pop_back();
 			}
@@ -284,22 +284,22 @@ std::vector<Parser::string_or_vec> Parser::combine_template_args(std::vector<str
 	return temp;
 }
 
-std::vector<FuncStruct::arg_struct> Parser::prepare_args(const std::vector<Parser::string_or_vec>& args) {
+std::vector<FuncStruct::arg_struct> Parser::prepare_args(const std::vector<token_or_vec>& args) {
 
 	vector<FuncStruct::arg_struct> all_args;
 	FuncStruct::arg_struct arg;
-	std::vector<string_or_vec> popped;
+	std::vector<token_or_vec> popped;
 
-	string_or_vec str;
+	token_or_vec tok;
 	auto rit = args.rbegin();
 	while (rit != args.rend()) {
-		str = *rit;
-		if (str.str == ",") {
+		tok = *rit;
+		if (tok.tok.str == ",") {
 			arg = prepare_single_arg(popped);
 			all_args.push_back(arg);
 			popped.clear();
 		} else {
-			popped.push_back(str);
+			popped.push_back(tok);
 		}
 		*rit++;
 	}
@@ -310,7 +310,7 @@ std::vector<FuncStruct::arg_struct> Parser::prepare_args(const std::vector<Parse
 	return all_args;
 }
 
-FuncStruct::arg_struct Parser::prepare_single_arg(const std::vector<Parser::string_or_vec> popped) {
+FuncStruct::arg_struct Parser::prepare_single_arg(const std::vector<token_or_vec> popped) {
 
 	FuncStruct::arg_struct arg;
 	string temp;
@@ -319,15 +319,15 @@ FuncStruct::arg_struct Parser::prepare_single_arg(const std::vector<Parser::stri
 	while (it + 1 != popped.end()) {
 		if ((*it).is_vec) {
 			auto jt = (*it).vec.begin();
-			while (jt != (*it).vec.end()) {
-				temp += (*jt).str;
+			while (jt != it->vec.end()) {
+				temp += jt->tok.str;
 				jt++;
 			}
 		}
-		temp += (*it).str;
+		temp += it->tok.str;
 		it++;
 	}
-	arg.name = popped.back().str;
+	arg.name = popped.back().tok.str;
 	arg.data_type = temp;
 
 	return arg;
