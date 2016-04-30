@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SPInna", "SPInna\SPInna.vcxproj", "{BAF60F51-F811-4E11-A57D-F508DB611DAB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SPInnaTest", "SPInnaTest\SPInnaTest.vcxproj", "{3D894FCC-45B4-48FF-BAEC-B2AB4DC91719}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BAF60F51-F811-4E11-A57D-F508DB611DAB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BAF60F51-F811-4E11-A57D-F508DB611DAB}.Debug|Win32.Build.0 = Debug|Win32
+		{BAF60F51-F811-4E11-A57D-F508DB611DAB}.Release|Win32.ActiveCfg = Release|Win32
+		{BAF60F51-F811-4E11-A57D-F508DB611DAB}.Release|Win32.Build.0 = Release|Win32
+		{3D894FCC-45B4-48FF-BAEC-B2AB4DC91719}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3D894FCC-45B4-48FF-BAEC-B2AB4DC91719}.Debug|Win32.Build.0 = Debug|Win32
+		{3D894FCC-45B4-48FF-BAEC-B2AB4DC91719}.Release|Win32.ActiveCfg = Release|Win32
+		{3D894FCC-45B4-48FF-BAEC-B2AB4DC91719}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
