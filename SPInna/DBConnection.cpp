@@ -75,7 +75,7 @@ void DBConnection::create_table(string table, table_row columns) {
 	stmt.reset(con->createStatement());
 	string query = "CREATE TABLE " + table + "(";
 	for (auto column : columns.fields) {
-		query += column + ",";
+		query += column.string_val + ",";
 	}
 	query = query.substr(0, query.size() - 1);
 	query += ")";
@@ -87,14 +87,20 @@ void DBConnection::reset_table(string table, table_row columns) {
 	create_table(table, columns);
 }
 
-bool DBConnection::insert_rows(string table, table_row columns, vector<table_row> rows) {
+void DBConnection::insert_rows(string table, table_row columns, vector<table_row> rows) {
+	for (auto row : rows) {
+		insert_row(table, columns, row);
+	}
+}
+
+int DBConnection::insert_row(string table, table_row columns, table_row row) {
 	string query = "INSERT INTO " + table + "(";
 	for (auto column : columns.fields) {
-		query += column + ",";
+		query += column.string_val + ",";
 	}
 	query = query.substr(0, query.size() - 1);
 	query += ") VALUES(";
-	
+
 	for (int i = 0; i < columns.fields.size(); ++i) {
 		query += "?,";
 	}
@@ -102,14 +108,22 @@ bool DBConnection::insert_rows(string table, table_row columns, vector<table_row
 	query += ")";
 	pstmt = con->prepareStatement(query.c_str());
 
-	for (auto row : rows) {
-		for (int i = 0; i < row.fields.size(); ++i) {
-			pstmt->setString(i+1, row.fields.at(i).c_str());
+	for (int i = 0; i < row.fields.size(); ++i) {
+		table_entry entry = row.fields[i];
+		switch (entry.type) {
+			case table_entry::STRING:
+				pstmt->setString(i + 1, entry.string_val.c_str());
+				break;
+			case table_entry::INT:
+				pstmt->setInt(i + 1, entry.int_val);
+				break;
 		}
-		pstmt->execute();
 	}
+	pstmt->execute();
 
-	return true;
+	sql::ResultSet* res = stmt->executeQuery("SELECT @@identity AS id");
+	res->next();
+	return res->getInt("id");
 }
 
 int DBConnection::get_entry_id(string table, string column, string search_for) {

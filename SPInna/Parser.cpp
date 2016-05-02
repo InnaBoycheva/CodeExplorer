@@ -9,6 +9,7 @@ Parser::Parser()
 	// while parsing lines, we can have multiline comments
 	// when scanning initially, assume it is not a comment
 	comment = false;
+	midstring = false;
 	current_line = 0;
 }
 
@@ -57,7 +58,21 @@ void Parser::scan_line(string line, Node* node) {
 	}
 
 	for (c; *c != '\0'; ++c) {
+		if (midstring && (*c != string_type || (*(c-1) == '\\' && *(c-2) != '\\'))) {
+			content += *c;
+			continue;
+		}
 		switch (*c) {
+			case '"':
+			case '\'':
+				midstring = !midstring;
+				string_type = *c;
+				content += string_type;
+				if (!midstring) {
+					stack.push_back(token(content, current_line));
+					content = "";
+				}
+				break;
 			case ';':
 			case '{':
 			case '(':
@@ -77,6 +92,7 @@ void Parser::scan_line(string line, Node* node) {
 			case '}':
 
 				// Start from beginning of stack until encountering {
+
 				if (!content.empty()) {
 					stack.push_back(token(content, current_line));
 				}
@@ -217,11 +233,13 @@ void Parser::parse(Node* node) {
 		// Function name
 		const char* c = next->str.c_str();
 		string function_name = find_function_name(func_struct, c);
+		// next->line is function line
 		
 		// black voodoo magic to decide if it's a class or namespace
 		// if (func_struct.namespaces.back() is class) func_struct.set_class_name(func_struct.namespaces.back()); func_struct.namespaces.pop_back();
 		if (!function_name.empty()) {
 			func_struct.set_name(function_name);
+			func_struct.set_def_line(next->line);
 		}
 
 		// Arguments processing

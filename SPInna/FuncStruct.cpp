@@ -1,6 +1,5 @@
 #include "FuncStruct.h"
 
-
 FuncStruct::FuncStruct()
 {
 }
@@ -9,7 +8,7 @@ FuncStruct::~FuncStruct()
 {
 }
 
-std::string FuncStruct::get_return_type() {
+std::string FuncStruct::get_return_type() const {
 	return this->return_type;
 }
 
@@ -17,7 +16,7 @@ void FuncStruct::set_return_type(std::string return_type) {
 	this->return_type = return_type;
 }
 
-std::string FuncStruct::get_name() {
+std::string FuncStruct::get_name() const {
 	return this->name;
 }
 
@@ -41,13 +40,22 @@ void FuncStruct::add_arg(std::pair<std::string, std::string> arg) {
 	this->args.push_back(arg);
 }*/
 
-std::vector<std::string> FuncStruct::get_namespaces() {
+std::vector<std::string> FuncStruct::get_namespaces() const {
 	return this->namespaces;
 }
+
 void FuncStruct::set_namespaces(std::vector<std::string> namespaces) {
 	this->namespaces = namespaces;
 }
 
 void FuncStruct::add_namespace(std::string new_namespace) {
 	this->namespaces.push_back(new_namespace);
+}
+
+void FuncStruct::set_def_line(int line) {
+	def_line = line;
+}
+
+int FuncStruct::get_def_line() const {
+	return def_line;
 }

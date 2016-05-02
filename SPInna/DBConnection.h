@@ -20,8 +20,29 @@ using namespace std;
 class DBConnection
 {
 public:
+	struct table_entry {
+		table_entry(std::string val) {
+			type = STRING;
+			string_val = val;
+		}
+		table_entry(const char* val) {
+			type = STRING;
+			string_val = string(val);
+		}
+		table_entry(int val) {
+			type = INT;
+			int_val = val;
+		}
+		enum entry_type {
+			STRING,
+			INT
+		};
+		entry_type type;
+		int int_val;
+		std::string string_val;
+	};
 	struct table_row {
-		std::vector<std::string> fields;
+		std::vector<table_entry> fields;
 	};
 
 	DBConnection(std::string db_name);
@@ -31,7 +52,8 @@ public:
 	void drop_table(std::string table);
 	void create_table(std::string table, table_row columns);
 	void reset_table(std::string table, table_row columns);
-	bool insert_rows(std::string table, table_row columns, std::vector<table_row> rows);
+	void insert_rows(std::string table, table_row columns, std::vector<table_row> rows);
+	int insert_row(std::string table, table_row columns, table_row rows);
 	int get_entry_id(std::string table, std::string column, std::string search_for);
 
 private:

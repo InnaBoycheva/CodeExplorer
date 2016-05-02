@@ -31,9 +31,13 @@ public:
 
 	std::string get_include(std::string line);
 	void add_include(std::string include, std::string file_prefix, Node& node);
-	void save_nodes_in_db();
-	void prepare_files_table_update();
-	void prepare_classes_table_update();
-	void prepare_functions_table_update();
+
+	void create_files_table();
+	void create_classes_table();
+	void create_functions_table();
+
+	int add_file(std::string filename, std::string& file_content);
+	void insert_classes_in_DB(int file_id, const Node& node);
+	void insert_functions_in_DB(int file_id, const Node& node);
 
 };

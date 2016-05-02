@@ -7,6 +7,11 @@ using namespace std;
 FilesGraph::FilesGraph(DBConnection* con, int proj_id) {
 	this->con = con;
 	this->proj_id = proj_id;
+
+	// Create all the tabllleeeeees
+	create_files_table();
+	create_classes_table();
+	create_functions_table();
 }
 
 FilesGraph::~FilesGraph() {
@@ -43,18 +48,24 @@ void FilesGraph::analyze_file(const string& path) {
 
 	Parser line_parser;
 	string line;
+	string file_content;
 
 	while (!file.eof()) {
-
 		getline(file, line);
+		file_content += line + "\n";
 
 		// Scan for includes
 		add_include(get_include(line), path, node);
 
 		// Scan for function defs
 		line_parser.scan_line(line, &node);
-
 	}
+
+	// Populate tables
+	int file_id = add_file(get_name_from_path(path), file_content);
+	insert_classes_in_DB(file_id, node);
+	insert_functions_in_DB(file_id, node);
+
 }
 
 string subst_of_cstr(const char *cstr, size_t start, size_t length) {
@@ -143,15 +154,7 @@ void FilesGraph::add_include(string include, string path, Node& node) {
 	}
 }
 
-void FilesGraph::save_nodes_in_db() {
-
-	prepare_files_table_update();
-	prepare_classes_table_update();
-
-}
-
-void FilesGraph::prepare_files_table_update() {
-
+void FilesGraph::create_files_table() {
 	DBConnection::table_row columns;
 	columns.fields.push_back("id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY");
 	columns.fields.push_back("name VARCHAR(255) DEFAULT NULL");
@@ -161,28 +164,9 @@ void FilesGraph::prepare_files_table_update() {
 	char proj[256];
 	_itoa_s(proj_id, proj, 256, 10);
 	con->reset_table("files_" + string(proj), columns);
-
-	vector<DBConnection::table_row> rows;
-
-	// Add new file entries
-	for (auto entry : graph) {
-		DBConnection::table_row row;
-		row.fields.push_back(get_name_from_path(entry.first));	// name
-		row.fields.push_back("test");							// content
-		rows.push_back(row);
-	}
-
-	columns.fields.clear();
-	columns.fields.push_back("name");
-	columns.fields.push_back("content");
-
-	con->insert_rows("files_" + string(proj), columns, rows);
-
 }
 
-void FilesGraph::prepare_classes_table_update() {
-
-	// classes - file_id, class name, namespace
+void FilesGraph::create_classes_table() {
 	DBConnection::table_row columns;
 	columns.fields.push_back("id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY");
 	columns.fields.push_back("file_id int(11) NOT NULL");
@@ -192,46 +176,81 @@ void FilesGraph::prepare_classes_table_update() {
 	char proj[256];
 	_itoa_s(proj_id, proj, 256, 10);
 	con->reset_table("classes_" + string(proj), columns);
-
-	vector<DBConnection::table_row> rows;
-
-	for (auto entry : graph) {
-		DBConnection::table_row row;
-		for (int i = 0; i < entry.second.defined_classes.size(); ++i) {
-			string file_name = get_name_from_path(entry.first);
-			int file_id = con->get_entry_id("files_" + string(proj), "name" , file_name);
-
-			char file[256];
-			_itoa_s(file_id, file, 256, 10);
-
-			row.fields.push_back(string(file));
-			row.fields.push_back(entry.second.defined_classes.at(i));	// class name
-			// namespace
-
-			rows.push_back(row);
-		}
-		
-	}
-
-	columns.fields.clear();
-	columns.fields.push_back("file_id");
-	columns.fields.push_back("name");
-
-	con->insert_rows("classes_" + string(proj), columns, rows);
 }
 
-void FilesGraph::prepare_functions_table_update() {
-
-	// function id
-	// function name
-	// class id (null if not defined)
-	// namespace id (only populate if class_id = null)
-	// return_type
-	// def_line
-	// decl_line
-
+void FilesGraph::create_functions_table() {
 	DBConnection::table_row columns;
 	columns.fields.push_back("id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY");
 	columns.fields.push_back("name VARCHAR(255) DEFAULT NULL");
+	columns.fields.push_back("file_id int(11) NOT NULL");
 	columns.fields.push_back("return_type VARCHAR(255) DEFAULT NULL");
+	columns.fields.push_back("def_line VARCHAR(255) DEFAULT NULL");
+
+	// Drop current table & recreate it
+	char proj[256];
+	_itoa_s(proj_id, proj, 256, 10);
+	con->reset_table("functions_" + string(proj), columns);
+}
+
+int FilesGraph::add_file(string filename, string& file_content) {
+
+	DBConnection::table_row columns;
+	DBConnection::table_row row;
+
+	char proj[256];
+	_itoa_s(proj_id, proj, 256, 10);
+
+	// Add new file entries
+	row.fields.push_back(filename);	// name
+	row.fields.push_back(file_content);
+
+	columns.fields.push_back("name");
+	columns.fields.push_back("content");
+
+	return con->insert_row("files_" + string(proj), columns, row);
+}
+
+void FilesGraph::insert_classes_in_DB(int file_id, const Node& node) {
+
+	DBConnection::table_row columns;
+	columns.fields.push_back("file_id");
+	columns.fields.push_back("name");
+
+	char proj[256];
+	_itoa_s(proj_id, proj, 256, 10);
+
+	for (int i = 0; i < node.defined_classes.size(); ++i) {
+		DBConnection::table_row row;
+
+		row.fields.push_back(file_id);							// file_id
+		row.fields.push_back(node.defined_classes.at(i));			// class name
+		// namespace
+
+		con->insert_row("classes_" + string(proj), columns, row);
+	}
+}
+
+void FilesGraph::insert_functions_in_DB(int file_id, const Node& node) {
+
+	DBConnection::table_row columns;
+	columns.fields.push_back("name");
+	columns.fields.push_back("file_id");
+	columns.fields.push_back("return_type");
+	columns.fields.push_back("def_line");
+
+	char proj[256];
+	_itoa_s(proj_id, proj, 256, 10);
+	for (int i = 0; i < node.functions.size(); ++i) {
+		DBConnection::table_row row;
+
+		row.fields.push_back(node.functions.at(i).get_name());			// function name
+		row.fields.push_back(file_id);										// file id
+		// class id			
+		// namespace id
+		row.fields.push_back(node.functions.at(i).get_return_type());	// return type
+		row.fields.push_back(node.functions.at(i).get_def_line());		// def line
+		// decl line
+
+		con->insert_row("functions_" + string(proj), columns, row);
+	}
 }

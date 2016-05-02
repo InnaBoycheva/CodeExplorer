@@ -38,7 +38,5 @@ int main(int argc, char** argv) {
 		// close all files
 	}*/
 
-	project_graph.save_nodes_in_db();
-
 	return 0;
 }

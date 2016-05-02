@@ -44,6 +44,8 @@ public:
 	int current_line;
 	std::vector<token> stack;
 	bool comment;
+	bool midstring;
+	char string_type;
 
 	void parse(Node* node);
 	std::vector<token_or_vec> combine_template_args(std::vector<token> split);
