@@ -10,7 +10,7 @@ public:
 	Parser();
 	~Parser();
 
-	void scan_line(std::string line, Node* node);
+	void scan_line(std::string line, Node* node, bool is_parse_ii);
 
 //private:
 
@@ -48,6 +48,7 @@ public:
 	char string_type;
 
 	void parse(Node* node);
+	void parse_ii(Node* node);
 	std::vector<token_or_vec> combine_template_args(std::vector<token> split);
 	void add_class(Node* node);
 	std::string find_function_name(FuncStruct func_struct, const char* c);
@@ -55,4 +56,5 @@ public:
 	void add_args(const std::vector<token_or_vec>& args, FuncStruct& func_struct);
 	std::vector<FuncStruct::arg_struct> Parser::prepare_args(const std::vector<token_or_vec>& args);
 	FuncStruct::arg_struct prepare_single_arg(const std::vector<token_or_vec> popped);
+	bool find_function(std::string potential_func, const Node &node, FuncStruct* res);
 };

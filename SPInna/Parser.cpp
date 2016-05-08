@@ -32,7 +32,7 @@ bool Parser::find_balanced(vector<token>::reverse_iterator& it, string start_wit
 
 }
 
-void Parser::scan_line(string line, Node* node) {
+void Parser::scan_line(string line, Node* node, bool is_parse_ii) {
 	++current_line;
 
 	const char* c = line.c_str();
@@ -73,10 +73,27 @@ void Parser::scan_line(string line, Node* node) {
 					content = "";
 				}
 				break;
+			case ')':
+				if (is_parse_ii) {
+					// Start from beginning of stack until encountering (
+					if (!content.empty()) {
+						stack.push_back(token(content, current_line));
+					}
+					content = *c;
+					stack.push_back(token(content, current_line));
+					content = "";
+					loc = stack.rbegin();
+
+					if (find_balanced(loc, ")", "(")) {
+						// Now parse
+						loc++;
+						parse_ii(node);
+					}
+					break;
+				}
 			case ';':
 			case '{':
 			case '(':
-			case ')':
 			case ',':
 			case '>':
 			case '<':
@@ -92,7 +109,6 @@ void Parser::scan_line(string line, Node* node) {
 			case '}':
 
 				// Start from beginning of stack until encountering {
-
 				if (!content.empty()) {
 					stack.push_back(token(content, current_line));
 				}
@@ -136,6 +152,20 @@ void Parser::scan_line(string line, Node* node) {
 					}
 					if (*c == '\0') return;
 				}
+				content += *c;
+				break;
+			case '-':
+			case '.':
+			case ':':
+				if (is_parse_ii) {
+					if (!content.empty()) {
+						stack.push_back(token(content, current_line));
+					}
+					content = *c;
+					stack.push_back(token(content, current_line));
+					content = "";
+					break;
+				}
 			default:
 				content += *c;
 				break;
@@ -147,14 +177,19 @@ void Parser::scan_line(string line, Node* node) {
 }
 
 void Parser::add_class(Node* node) {
+
 	auto rit = loc;
-	while (rit != stack.rend() && rit->str != "}" && rit->str != ";") {
+	while (rit != stack.rend()) {
+		if (rit->str == "}" || rit->str == ";") {
+			return;
+		}
+		if (rit->str == "class" || rit->str == "struct") {
+			string class_name = (rit - 1)->str;
+			// save class/structure
+			node->defined_classes.push_back(class_name);
+			return;
+		}
 		rit++;
-	}
-	if ((--rit)->str == "class" || rit->str == "struct") {
-		string class_name = (rit - 1)->str;
-		// save class/structure as it is defined in this file
-		node->defined_classes.push_back(class_name);
 	}
 }
 
@@ -178,7 +213,7 @@ string Parser::find_function_name(FuncStruct func_struct, const char* c) {
 	return name_component;
 }
 
-void Parser::parse(Node* node) {
+void Parser::parse(Node* node) {	
 
 	// If not ) - class / struct / lambda
 	if (loc->str != ")") {
@@ -222,7 +257,7 @@ void Parser::parse(Node* node) {
 		return;
 	}
 
-	// Disregard control structures
+	// Disregard basic control structures
 	next = loc;
 	if (next->str != "if" && next->str != "for" &&
 		next->str != "else" && next->str != "switch" &&
@@ -233,7 +268,6 @@ void Parser::parse(Node* node) {
 		// Function name
 		const char* c = next->str.c_str();
 		string function_name = find_function_name(func_struct, c);
-		// next->line is function line
 		
 		// black voodoo magic to decide if it's a class or namespace
 		// if (func_struct.namespaces.back() is class) func_struct.set_class_name(func_struct.namespaces.back()); func_struct.namespaces.pop_back();
@@ -256,7 +290,7 @@ void Parser::parse(Node* node) {
 		popped.clear();
 
 		loc++;
-		while (loc != stack.rend() && loc->str != "}" && loc->str != ";") {
+		while (loc != stack.rend() && loc->str != "}" && loc->str != ";" && loc->str != "{") {
 			popped.push_back(*loc);
 			loc++;
 		}
@@ -349,4 +383,31 @@ FuncStruct::arg_struct Parser::prepare_single_arg(const std::vector<token_or_vec
 	arg.data_type = temp;
 
 	return arg;
+}
+
+void Parser::parse_ii(Node* node) {
+	if (loc->str != "if" && loc->str != "for" &&
+		loc->str != "else" && loc->str != "switch" &&
+		loc->str != "while") {
+			string potential_func = loc->str;
+			FuncStruct func;
+			find_function(potential_func, *node, &func);
+	}
+}
+
+bool Parser::find_function(string potential_func, const Node &node, FuncStruct* res) {
+	// find in file
+	for (int i = 0; i < node.functions.size(); ++i) {
+		if (node.functions[i].get_name() == potential_func) {
+			*res = node.functions[i];
+			return true;
+		}
+	}
+	// find in includes
+	for (int i = 0; i < node.includes.size(); ++i) {
+		if (find_function(potential_func, *node.includes[i], res)) {
+			return true;
+		}
+	}
+	return false;
 }

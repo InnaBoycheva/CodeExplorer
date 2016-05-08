@@ -29,6 +29,26 @@ string get_name_from_path(string path) {
 		return path.substr(i+1, path.size() - 1);
 }
 
+void FilesGraph::link_functions(const string& path) {
+
+	// Open file
+	ifstream file(path);
+	if (!file) {
+		cerr << "Error Opening " << path << endl;
+		return;
+	}
+
+	Parser line_parser;
+	string line;
+
+	while (!file.eof()) {
+		getline(file, line);
+
+		// Scan
+		line_parser.scan_line(line, &graph[path], true);
+	}
+}
+
 void FilesGraph::analyze_file(const string& path) {
 
 	// Open file
@@ -58,7 +78,7 @@ void FilesGraph::analyze_file(const string& path) {
 		add_include(get_include(line), path, node);
 
 		// Scan for function defs
-		line_parser.scan_line(line, &node);
+		line_parser.scan_line(line, &node, false);
 	}
 
 	// Populate tables

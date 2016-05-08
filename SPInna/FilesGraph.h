@@ -23,6 +23,7 @@ public:
 	FilesGraph(DBConnection* con, int proj_id);
 	~FilesGraph();
 	void analyze_file(const std::string& file_name);
+	void link_functions(const std::string& file_name);
 
 //private:
 	DBConnection* con;

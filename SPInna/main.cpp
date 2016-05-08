@@ -34,6 +34,11 @@ int main(int argc, char** argv) {
 		project_graph.analyze_file(file_path);
 	}
 
+	for (auto it = files.begin(); it != files.end(); ++it) {
+		string file_path = *it;
+		project_graph.link_functions(file_path);
+	}
+
 	/*for (auto it = files.begin(); it != files.end(); ++it) {
 		// close all files
 	}*/
