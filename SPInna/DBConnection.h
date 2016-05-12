@@ -10,16 +10,10 @@
 
 using namespace std;
 
-// projects - id, base path
-// files_project_id - name of file, id of file, file content
-// classes - file_id, class name, namespace
-// functions_project_id - function id, function name, class id (null if not defined),
-//		namespace id (only populate if class_id = null), return type, def_line, declaration_line
-// arguments_project_id - function id, arg name, data type
-
 class DBConnection
 {
 public:
+
 	struct table_entry {
 		table_entry(std::string val) {
 			type = STRING;
@@ -41,20 +35,21 @@ public:
 		int int_val;
 		std::string string_val;
 	};
+
 	struct table_row {
 		std::vector<table_entry> fields;
 	};
 
-	DBConnection(std::string db_name);
-
-	void setup_projects_table();
-	int find_project(std::string path);
+	DBConnection(std::string db_name);	
 	void drop_table(std::string table);
 	void create_table(std::string table, table_row columns);
 	void reset_table(std::string table, table_row columns);
-	void insert_rows(std::string table, table_row columns, std::vector<table_row> rows);
 	int insert_row(std::string table, table_row columns, table_row rows);
+	void insert_rows(std::string table, table_row columns, std::vector<table_row> rows);
+	void update_row(std::string table, int id, table_row columns, table_row rows);
 	int get_entry_id(std::string table, std::string column, std::string search_for);
+	int find_project(std::string path);
+	void setup_projects_table();
 
 private:
 	sql::Driver *driver;

@@ -44,6 +44,7 @@ public:
 	int current_line;
 	std::vector<token> stack;
 	bool comment;
+	string comment_content;
 	bool midstring;
 	char string_type;
 
@@ -57,4 +58,6 @@ public:
 	std::vector<FuncStruct::arg_struct> Parser::prepare_args(const std::vector<token_or_vec>& args);
 	FuncStruct::arg_struct prepare_single_arg(const std::vector<token_or_vec> popped);
 	bool find_function(std::string potential_func, const Node &node, FuncStruct* res);
+
+	std::string get_content();
 };

@@ -10,22 +10,25 @@
 #include "DBConnection.h"
 
 struct Node {
+
 public:
 	Node() {}
 	std::vector<Node*> includes;
 	std::vector<FuncStruct> functions;
 	std::vector<std::string> defined_classes;
 	std::string name;
+	int id;
 };
 
 class FilesGraph {
+
 public:
 	FilesGraph(DBConnection* con, int proj_id);
 	~FilesGraph();
 	void analyze_file(const std::string& file_name);
 	void link_functions(const std::string& file_name);
 
-//private:
+// private:
 	DBConnection* con;
 	int proj_id;
 	std::map<std::string, Node> graph;
@@ -39,6 +42,6 @@ public:
 
 	int add_file(std::string filename, std::string& file_content);
 	void insert_classes_in_DB(int file_id, const Node& node);
-	void insert_functions_in_DB(int file_id, const Node& node);
+	void insert_functions_in_DB(int file_id, Node& node);
 
 };
